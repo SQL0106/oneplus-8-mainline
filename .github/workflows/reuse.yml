@@ -55,29 +55,22 @@ jobs:
         run: |
           cd /tmp/pmbootstrap
           yes "" | ./pmbootstrap.py -y init
+          ./pmbootstrap.py config build_pkgs_on_install false
 
-      - name: Download previous build artifacts
-        uses: actions/download-artifact@v4
+      - name: Restore build cache
+        uses: actions/cache/restore@v4
         with:
-          name: pmos-packages
-          path: /tmp/prev-pkgs
-          run-id: 31926213787
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: |
+            /home/runner/.local/var/pmbootstrap/packages
+            /home/runner/.local/var/pmbootstrap/config_abuild
+            /home/runner/.local/var/pmbootstrap/config_apk_keys
+            /home/runner/.local/var/pmbootstrap/cache_ccache_x86_64
+            /home/runner/.local/var/pmbootstrap/cache_ccache_aarch64
+          key: pmos-cache-${{ github.sha }}
+          restore-keys: |
+            pmos-cache-
 
-      - name: Seed packages + signing key
-        run: |
-          WORK="$HOME/.local/var/pmbootstrap"
-          PKGARCH="$WORK/packages/edge/aarch64"
-          PREVDIR=$(find /tmp/prev-pkgs -type d -name aarch64 | head -1)
-          mkdir -p "$PKGARCH" "$WORK/config_apk_keys"
-          cp "$PREVDIR"/*.apk "$PREVDIR"/APKINDEX.tar.gz "$PKGARCH/"
-          SIGN="$(mktemp -d)"
-          tar -xzf "$PKGARCH/linux-oneplus-instantnoodle-"*.apk -C "$SIGN" --wildcards '.SIGN.RSA*'
-          cp "$SIGN"/.SIGN.RSA* "$WORK/config_apk_keys/"
-          ls -la "$PKGARCH"
-          ls -la "$WORK/config_apk_keys"
-
-      - name: Build image
+      - name: Build image (no compilation; fails if packages missing)
         run: |
           cd /tmp/pmbootstrap
           ./pmbootstrap.py -y -j 2 install --password 147147
