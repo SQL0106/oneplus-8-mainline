@@ -12,6 +12,7 @@ on:
     branches: [main]
     paths-ignore:
       - "README.md"
+      - ".github/workflows/**"
 
 permissions:
   contents: read
