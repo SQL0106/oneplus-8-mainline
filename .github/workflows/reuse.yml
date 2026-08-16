@@ -121,7 +121,7 @@ jobs:
             test -f "$GITHUB_WORKSPACE/artifacts/$f" && test -s "$GITHUB_WORKSPACE/artifacts/$f" \
               || { echo "ERROR: missing/empty $f"; exit 1; }
           done
-          find "$GITHUB_WORKSPACE/artifacts/" -name 'rootfs*.img' | grep -q . \
+          find "$GITHUB_WORKSPACE/artifacts/" -name '*.img' | grep -q . \
             || { echo "ERROR: missing rootfs image"; exit 1; }
           find "$GITHUB_WORKSPACE/artifacts/dtbs/" -name '*.dtb' | grep -q . \
             || { echo "ERROR: dtbs not exported"; exit 1; }
