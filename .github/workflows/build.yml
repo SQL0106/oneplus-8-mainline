@@ -126,8 +126,8 @@ jobs:
 
       - name: Make cache paths readable
         run: |
-          chmod -R a+rX "$HOME/.local/var/pmbootstrap/config_abuild" \
-            "$HOME/.local/var/pmbootstrap/config_apk_keys"
+          sudo chmod -R a+rX "$HOME/.local/var/pmbootstrap/config_abuild" \
+            "$HOME/.local/var/pmbootstrap/config_apk_keys" || true
 
       - name: Save build cache
         if: success()
