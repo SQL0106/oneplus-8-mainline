@@ -16,6 +16,7 @@ on:
 
 permissions:
   contents: read
+  actions: write
 
 jobs:
   build:
@@ -67,6 +68,16 @@ jobs:
         run: |
           cd /tmp/pmbootstrap
           yes "" | ./pmbootstrap.py -y init
+
+      - name: Install fixed signing keys
+        run: |
+          WORK="$HOME/.local/var/pmbootstrap"
+          mkdir -p "$WORK/config_abuild" "$WORK/config_apk_keys"
+          cp ci/keys/abuild.conf ci/keys/pmos@local-ci.rsa ci/keys/pmos@local-ci.rsa.pub "$WORK/config_abuild/"
+          cp ci/keys/pmos@local-ci.rsa.pub "$WORK/config_apk_keys/"
+          chmod 600 "$WORK/config_abuild/pmos@local-ci.rsa"
+          echo "installed keys:"
+          ls -la "$WORK/config_abuild" "$WORK/config_apk_keys"
 
       - name: Set UI
         run: |
@@ -124,16 +135,43 @@ jobs:
             /home/runner/.local/var/pmbootstrap/cache_ccache_aarch64
           key: pmos-cache-${{ github.sha }}
 
+      - name: Verify build cache saved
+        if: always()
+        shell: bash
+        run: |
+          for i in $(seq 1 12); do
+            if curl -fsS -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/actions/caches" \
+              | grep -q "pmos-cache-${{ github.sha }}"; then
+              echo "CACHE OK: pmos-cache-${{ github.sha }}"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "ERROR: cache pmos-cache-${{ github.sha }} was NOT saved"
+          exit 1
+
       - name: Export artifacts
         run: |
           cd /tmp/pmbootstrap
           ./pmbootstrap.py export ./export
           mkdir -p "$GITHUB_WORKSPACE/artifacts"
-          cp -L ./export/* "$GITHUB_WORKSPACE/artifacts/" 2>/dev/null || true
-          ls -lh "$GITHUB_WORKSPACE/artifacts/"
+          tar -ch -C ./export -f "$GITHUB_WORKSPACE/artifacts/export.tar" .
+          cp -aL ./export/. "$GITHUB_WORKSPACE/artifacts/" 2>/dev/null || true
+          echo "=== full export inventory ==="
+          find "$GITHUB_WORKSPACE/artifacts/" -type f -printf '%P %s bytes\n' | sort
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: postmarketos-oneplus-instantnoodle
           path: artifacts/
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            /home/runner/.local/var/pmbootstrap/log.txt
+          if-no-files-found: ignore

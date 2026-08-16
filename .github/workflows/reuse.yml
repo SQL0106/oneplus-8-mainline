@@ -57,6 +57,16 @@ jobs:
           yes "" | ./pmbootstrap.py -y init
           ./pmbootstrap.py config build_pkgs_on_install false
 
+      - name: Install fixed signing keys
+        run: |
+          WORK="$HOME/.local/var/pmbootstrap"
+          mkdir -p "$WORK/config_abuild" "$WORK/config_apk_keys"
+          cp ci/keys/abuild.conf ci/keys/pmos@local-ci.rsa ci/keys/pmos@local-ci.rsa.pub "$WORK/config_abuild/"
+          cp ci/keys/pmos@local-ci.rsa.pub "$WORK/config_apk_keys/"
+          chmod 600 "$WORK/config_abuild/pmos@local-ci.rsa"
+          echo "installed keys:"
+          ls -la "$WORK/config_abuild" "$WORK/config_apk_keys"
+
       - name: Restore build cache
         uses: actions/cache/restore@v4
         with:
@@ -69,6 +79,16 @@ jobs:
           key: pmos-cache-${{ github.sha }}
           restore-keys: |
             pmos-cache-
+
+      - name: Verify cache restored
+        shell: bash
+        run: |
+          if [ -z "$(find "$HOME/.local/var/pmbootstrap/packages" -name '*.apk' 2>/dev/null | head -1)" ]; then
+            echo "ERROR: build cache NOT restored (no packages found)"
+            exit 1
+          fi
+          echo "CACHE RESTORED: $(find "$HOME/.local/var/pmbootstrap/packages" -name '*.apk' | wc -l) apk files"
+          ls -la "$HOME/.local/var/pmbootstrap/packages/edge/aarch64/" 2>/dev/null || true
 
       - name: Build image (no compilation; fails if packages missing)
         run: |
@@ -88,11 +108,22 @@ jobs:
           cd /tmp/pmbootstrap
           ./pmbootstrap.py export ./export
           mkdir -p "$GITHUB_WORKSPACE/artifacts"
-          cp -L ./export/* "$GITHUB_WORKSPACE/artifacts/" 2>/dev/null || true
-          ls -lh "$GITHUB_WORKSPACE/artifacts/"
+          tar -ch -C ./export -f "$GITHUB_WORKSPACE/artifacts/export.tar" .
+          cp -aL ./export/. "$GITHUB_WORKSPACE/artifacts/" 2>/dev/null || true
+          echo "=== full export inventory ==="
+          find "$GITHUB_WORKSPACE/artifacts/" -type f -printf '%P %s bytes\n' | sort
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: postmarketos-oneplus-instantnoodle
           path: artifacts/
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            /home/runner/.local/var/pmbootstrap/log.txt
+          if-no-files-found: ignore
