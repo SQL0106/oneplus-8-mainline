@@ -1,0 +1,48 @@
+# Reference: <https://postmarketos.org/firmwarepkg>
+# Firmware extracted from the OnePlus 8 factory image, packaged by
+# Xiaoou (Xo666) in <https://github.com/Xo666/linux-oneplus-instantnoodle>.
+# Bluetooth firmware comes from the OnePlus 8 Pro package (same QCA6390 chip).
+maintainer="SQL0106 <liuqiansheng090106@gmail.com>"
+pkgname=firmware-oneplus-instantnoodle
+pkgver=0.1
+pkgrel=0
+pkgdesc="Firmware for OnePlus 8 (instantnoodle)"
+url="https://github.com/Xo666/linux-oneplus-instantnoodle"
+arch="aarch64"
+license="proprietary"
+options="!check !strip !archcheck !tracedeps pmb:cross-native"
+replaces="
+	linux-firmware-ath11k
+	linux-firmware-qca
+	linux-firmware-qcom
+"
+
+_fwcommit="9e645da0ce76ccb7594d5b2da6fb43fe374b6897"
+_fwrepo="linux-oneplus-instantnoodle-$_fwcommit"
+_btcommit="2dce2681689fcf615198c663555c5a7c7b3650ba"
+_btrepo="oneplus-instantnoodlep-firmware-$_btcommit"
+source="
+	$_fwrepo.tar.gz::https://github.com/Xo666/linux-oneplus-instantnoodle/archive/$_fwcommit/$_fwrepo.tar.gz
+	$_btrepo.tar.gz::https://github.com/pangwalla/oneplus-instantnoodlep-firmware/archive/$_btcommit/$_btrepo.tar.gz
+"
+builddir="$srcdir/$_fwrepo"
+
+package() {
+	# adsp, slpi, cdsp, venus, ipa, gpu (a650), wifi, modem, regulatory
+	mkdir -p "$pkgdir/lib/firmware"
+	cp -a "$builddir/firmware-oneplus-instantnoodle/usr/lib/firmware/." "$pkgdir/lib/firmware/"
+
+	# The DT references "qcom/sm8250/OnePlus/*.mbn" while the firmware tree
+	# ships the files under "qcom/sm8250/OnePlus8/" - mirror to both paths.
+	mkdir -p "$pkgdir/lib/firmware/qcom/sm8250/OnePlus"
+	cp -a "$pkgdir/lib/firmware/qcom/sm8250/OnePlus8/." "$pkgdir/lib/firmware/qcom/sm8250/OnePlus/"
+
+	# QCA6390 bluetooth NVM/rampatch
+	mkdir -p "$pkgdir/lib/firmware/qca"
+	cp -a "$srcdir/$_btrepo/bluetooth/." "$pkgdir/lib/firmware/qca/"
+}
+
+sha512sums="
+8616aedad38a23f38ddb1ead7d56e252f66707930f93ea93563f4eaaba02a52f1d798a30d2c4ca29ed375d71322e5b6536c1cc028bf4083d436dace1f664fc68  linux-oneplus-instantnoodle-9e645da0ce76ccb7594d5b2da6fb43fe374b6897.tar.gz
+c2855805e6327977fbd119ed89e76010586273008260c4df827622266f42dc318abf7f61f78408596377338cf36c03dd10b7279b6e6f7986569c970fffae72da  oneplus-instantnoodlep-firmware-2dce2681689fcf615198c663555c5a7c7b3650ba.tar.gz
+"

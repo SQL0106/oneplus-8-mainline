@@ -1,0 +1,26 @@
+# Reference: <https://postmarketos.org/devicepkg>
+# ALSA UCM2 configs for the OnePlus 8, packaged by Xiaoou (Xo666).
+maintainer="SQL0106 <liuqiansheng090106@gmail.com>"
+pkgname=alsa-oneplus-instantnoodle
+pkgver=0.1
+pkgrel=0
+pkgdesc="ALSA UCM2 configs for OnePlus 8 (instantnoodle)"
+url="https://github.com/Xo666/linux-oneplus-instantnoodle"
+arch="noarch"
+license="MIT"
+options="!check !archcheck"
+depends="alsa-lib"
+
+_commit="9e645da0ce76ccb7594d5b2da6fb43fe374b6897"
+_repo="linux-oneplus-instantnoodle-$_commit"
+source="$_repo.tar.gz::https://github.com/Xo666/linux-oneplus-instantnoodle/archive/$_commit/$_repo.tar.gz"
+builddir="$srcdir/$_repo"
+
+package() {
+	mkdir -p "$pkgdir/usr/share/alsa/ucm2/OnePlus"
+	cp -a "$builddir/alsa-oneplus-instantnoodle/usr/share/alsa/ucm2/OnePlus/." "$pkgdir/usr/share/alsa/ucm2/OnePlus/"
+}
+
+sha512sums="
+8616aedad38a23f38ddb1ead7d56e252f66707930f93ea93563f4eaaba02a52f1d798a30d2c4ca29ed375d71322e5b6536c1cc028bf4083d436dace1f664fc68  linux-oneplus-instantnoodle-9e645da0ce76ccb7594d5b2da6fb43fe374b6897.tar.gz
+"

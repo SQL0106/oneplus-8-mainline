@@ -1,0 +1,76 @@
+# Reference: <https://postmarketos.org/vendorkernel>
+# Kernel config based on: arch/arm64/configs/op8_defconfig
+# Source: Xo666/mainline-instantnoodle, branch 6.16.7
+maintainer="SQL0106 <liuqiansheng090106@gmail.com>"
+_flavor="oneplus-instantnoodle"
+pkgname=linux-$_flavor
+pkgver=6.16.7
+pkgrel=0
+pkgdesc="Mainline kernel for OnePlus 8 (instantnoodle)"
+arch="aarch64"
+_carch="arm64"
+url="https://github.com/Xo666/mainline-instantnoodle"
+license="GPL-2.0-only"
+options="!strip !check !tracedeps
+	pmb:cross-native
+"
+makedepends="
+	bash
+	bison
+	clang
+	elfutils-dev
+	findutils
+	flex
+	linux-headers
+	lld
+	llvm
+	openssl-dev
+	pahole
+	perl
+	postmarketos-installkernel
+	python3
+"
+
+# Source
+_commit="408762bfe17332622560658f394f9cdbb1c9902e"
+_config="config-$_flavor.$arch"
+source="
+	$pkgname-$pkgver.tar.gz::https://github.com/Xo666/mainline-instantnoodle/archive/$_commit/$pkgname-$pkgver.tar.gz
+	$_config
+"
+builddir="$srcdir/mainline-instantnoodle-$_commit"
+
+prepare() {
+	default_prepare
+	cp "$srcdir/config-$_flavor.$arch" .config
+	# Trim the upstream developer config: drop debug info to keep the
+	# cross-compile fast and the resulting package small
+	./scripts/config --disable DEBUG_INFO
+}
+
+build() {
+	unset LDFLAGS
+	make ARCH="$_carch" LLVM=1 \
+		KBUILD_BUILD_VERSION="$((pkgrel + 1 ))-$_flavor"
+}
+
+package() {
+	mkdir -p "$pkgdir"/boot
+
+	make zinstall modules_install dtbs_install \
+		ARCH="$_carch" \
+		LLVM=1 \
+		INSTALL_PATH="$pkgdir"/boot/ \
+		INSTALL_MOD_PATH="$pkgdir"/usr \
+		INSTALL_MOD_STRIP=1 \
+		INSTALL_DTBS_PATH="$pkgdir/boot/dtbs"
+	rm -f "$pkgdir"/usr/lib/modules/*/build "$pkgdir"/usr/lib/modules/*/source
+
+	install -D "$builddir"/include/config/kernel.release \
+		"$pkgdir"/usr/share/kernel/$_flavor/kernel.release
+}
+
+sha512sums="
+455a49c6414cf23e6ff3f3f9fc1f7d96db775d259e1f4f51a326529a23b6c390098b305c66ccb60b562e1fe79bf6b2774c0dd974ab35976b1806c84b2e27dff3  linux-oneplus-instantnoodle-6.16.7.tar.gz
+9dea0b9f430f53c023afa9381346da18ba7cad9d6f7250cab9d28379ffbfdd2bebf2d0fbb06b0e62777af584c1ee6c6e13857f9aff9f092ab459eff07f771513  config-oneplus-instantnoodle.aarch64
+"

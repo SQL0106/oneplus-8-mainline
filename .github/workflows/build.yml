@@ -1,0 +1,103 @@
+name: Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      ui:
+        description: "postmarketOS UI (console, phosh, sxmo, ...)"
+        required: false
+        default: "console"
+        type: string
+  push:
+    branches: [main]
+    paths-ignore:
+      - "README.md"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      UI: ${{ github.event.inputs.ui || 'console' }}
+      PMOS_ROOT: ${{ runner.home }}/.local/var/pmbootstrap
+      PMOS_CFG: ${{ runner.home }}/.config/pmbootstrap_v3.cfg
+      PMAPORTS: ${{ runner.home }}/.local/var/pmbootstrap/cache_git/pmaports
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install host dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            python3 python3-requests \
+            git kpartx util-linux e2fsprogs \
+            openssl tar bzip2 xz-utils \
+            qemu-user-static binfmt-support
+
+      - name: Clone pmbootstrap
+        run: |
+          git clone --depth 1 \
+            https://gitlab.postmarketos.org/postmarketOS/pmbootstrap.git /tmp/pmbootstrap
+
+      - name: Prepare pmaports with device overlay
+        run: |
+          mkdir -p "$PMAPORTS"
+          git clone --depth 1 \
+            https://gitlab.postmarketos.org/postmarketOS/pmaports.git "$PMAPORTS"
+          cp -r packages/device-oneplus-instantnoodle "$PMAPORTS/device/testing/"
+          cp -r packages/linux-oneplus-instantnoodle "$PMAPORTS/device/testing/"
+          cp -r packages/firmware-oneplus-instantnoodle "$PMAPORTS/device/testing/"
+          cp -r packages/alsa-oneplus-instantnoodle "$PMAPORTS/device/testing/"
+
+      - name: Pre-seed pmbootstrap config
+        run: |
+          mkdir -p "$(dirname "$PMOS_CFG")"
+          cat > "$PMOS_CFG" <<'EOF'
+          [pmbootstrap]
+          device = oneplus-instantnoodle
+          kernel = oneplus-instantnoodle
+          ui = console
+          EOF
+
+      - name: Init pmbootstrap (non-interactive)
+        run: |
+          cd /tmp/pmbootstrap
+          yes "" | ./pmbootstrap.py -y init
+
+      - name: Set UI
+        run: |
+          cd /tmp/pmbootstrap
+          ./pmbootstrap.py config ui "$UI"
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ runner.home }}/.local/var/pmbootstrap/cache_ccache_x86_64
+            ${{ runner.home }}/.local/var/pmbootstrap/cache_ccache_aarch64
+          key: ccache-${{ github.sha }}
+          restore-keys: |
+            ccache-
+
+      - name: Build image
+        run: |
+          cd /tmp/pmbootstrap
+          ./pmbootstrap.py -y -j 2 install
+
+      - name: Export artifacts
+        run: |
+          cd /tmp/pmbootstrap
+          ./pmbootstrap.py flasher export ./export
+          mkdir -p artifacts
+          cp -L ./export/* ./artifacts/ 2>/dev/null || true
+          ls -lh ./artifacts/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: postmarketos-oneplus-instantnoodle
+          path: artifacts/
