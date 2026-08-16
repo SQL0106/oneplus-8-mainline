@@ -107,6 +107,11 @@ jobs:
           path: /home/runner/.local/var/pmbootstrap/packages
           retention-days: 7
 
+      - name: Make cache paths readable
+        run: |
+          chmod -R a+rX "$HOME/.local/var/pmbootstrap/config_abuild" \
+            "$HOME/.local/var/pmbootstrap/config_apk_keys"
+
       - name: Save build cache
         if: always()
         uses: actions/cache/save@v4
