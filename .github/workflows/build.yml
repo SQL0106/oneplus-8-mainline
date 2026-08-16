@@ -22,9 +22,6 @@ jobs:
     timeout-minutes: 300
     env:
       UI: ${{ github.event.inputs.ui || 'console' }}
-      PMOS_ROOT: ${{ runner.home }}/.local/var/pmbootstrap
-      PMOS_CFG: ${{ runner.home }}/.config/pmbootstrap_v3.cfg
-      PMAPORTS: ${{ runner.home }}/.local/var/pmbootstrap/cache_git/pmaports
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,6 +42,7 @@ jobs:
 
       - name: Prepare pmaports with device overlay
         run: |
+          PMAPORTS="$HOME/.local/var/pmbootstrap/cache_git/pmaports"
           mkdir -p "$PMAPORTS"
           git clone --depth 1 \
             https://gitlab.postmarketos.org/postmarketOS/pmaports.git "$PMAPORTS"
@@ -55,8 +53,9 @@ jobs:
 
       - name: Pre-seed pmbootstrap config
         run: |
-          mkdir -p "$(dirname "$PMOS_CFG")"
-          cat > "$PMOS_CFG" <<'EOF'
+          CFG="$HOME/.config/pmbootstrap_v3.cfg"
+          mkdir -p "$(dirname "$CFG")"
+          cat > "$CFG" <<'EOF'
           [pmbootstrap]
           device = oneplus-instantnoodle
           kernel = oneplus-instantnoodle
@@ -77,8 +76,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ${{ runner.home }}/.local/var/pmbootstrap/cache_ccache_x86_64
-            ${{ runner.home }}/.local/var/pmbootstrap/cache_ccache_aarch64
+            /home/runner/.local/var/pmbootstrap/cache_ccache_x86_64
+            /home/runner/.local/var/pmbootstrap/cache_ccache_aarch64
           key: ccache-${{ github.sha }}
           restore-keys: |
             ccache-
