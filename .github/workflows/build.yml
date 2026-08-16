@@ -123,9 +123,9 @@ jobs:
         run: |
           cd /tmp/pmbootstrap
           ./pmbootstrap.py export ./export
-          mkdir -p artifacts
-          cp -L ./export/* ./artifacts/ 2>/dev/null || true
-          ls -lh ./artifacts/
+          mkdir -p "$GITHUB_WORKSPACE/artifacts"
+          cp -L ./export/* "$GITHUB_WORKSPACE/artifacts/" 2>/dev/null || true
+          ls -lh "$GITHUB_WORKSPACE/artifacts/"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
