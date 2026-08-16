@@ -5,7 +5,7 @@
 maintainer="SQL0106 <liuqiansheng090106@gmail.com>"
 pkgname=firmware-oneplus-instantnoodle
 pkgver=0.1
-pkgrel=0
+pkgrel=1
 pkgdesc="Firmware for OnePlus 8 (instantnoodle)"
 url="https://github.com/Xo666/linux-oneplus-instantnoodle"
 arch="aarch64"
@@ -31,6 +31,9 @@ package() {
 	# adsp, slpi, cdsp, venus, ipa, gpu (a650), wifi, modem, regulatory
 	mkdir -p "$pkgdir/lib/firmware"
 	cp -a "$builddir/firmware-oneplus-instantnoodle/usr/lib/firmware/." "$pkgdir/lib/firmware/"
+
+	# regulatory.db* is provided by the wireless-regdb package
+	rm -f "$pkgdir/lib/firmware/regulatory.db" "$pkgdir/lib/firmware/regulatory.db.p7s"
 
 	# The DT references "qcom/sm8250/OnePlus/*.mbn" while the firmware tree
 	# ships the files under "qcom/sm8250/OnePlus8/" - mirror to both paths.
