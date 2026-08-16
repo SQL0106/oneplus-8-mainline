@@ -63,6 +63,49 @@ fastboot flash super super-s.img
 fastboot reboot
 ```
 
+## 升级
+
+构建成功后，CI 会把自编译包（`APKINDEX.tar.gz` + 4 个 apk + 公钥）发布到 GitHub Release
+（滚动 tag `pmos-edge`，固定 URL `releases/latest/download/`），设备端可在线增量升级。
+
+### 一次性配置（设备上，首次升级前）
+
+```sh
+# 1. 导入签名公钥（信任何时用该密钥签名的包）
+cp pmos@local-ci.rsa.pub /etc/apk/keys/
+# 2. 添加自建仓库源（与官方 postmarketOS 源并存）
+echo "https://github.com/SQL0106/oneplus-8-mainline/releases/latest/download/" >> /etc/apk/repositories
+# 3. 确认已启用官方源（依赖如 postmarketos-base 来自官方）
+cat /etc/apk/repositories
+# 应包含类似： https://mirror.postmarketos.org/postmarketos/edge/aarch64
+```
+
+> 公钥文件在 Release 资产里（`pmos@local-ci.rsa.pub`），或直接从本仓库 `ci/keys/` 复制。
+
+### 日常升级（系统包 + 内核）
+
+```sh
+sudo apk update
+sudo apk upgrade
+```
+
+升级会自动：
+1. 更新自编译包（device / linux / firmware / alsa）
+2. 内核包更新后触发 mkinitfs 重建 initramfs
+3. 通过 boot-deploy 重建 `boot.img` 并 **自动写入 boot 分区**（无需连电脑）
+
+设备 `deviceinfo_flash_kernel_on_update="true"` 已启用此机制。
+
+### 内核升级注意
+
+- 内核更新需要**重启**生效：`sudo reboot`
+- 若升级后无法启动，用电脑恢复：
+  ```sh
+  # 下载该 commit 的 boot.img（Actions → 对应 run → artifacts）
+  fastboot flash boot boot.img
+  ```
+- `super` 分区（rootfs / /home 用户数据）升级不影响已有数据，仅系统包变化。
+
 ## 功能状态（Xo666 内核 6.16.7）
 
 | 功能 | 状态 |

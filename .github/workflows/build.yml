@@ -20,7 +20,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
   actions: write
 
 jobs:
@@ -192,3 +192,25 @@ jobs:
           path: |
             /home/runner/.local/var/pmbootstrap/log.txt
           if-no-files-found: ignore
+
+      - name: Publish apk repository to GitHub Release
+        shell: bash
+        run: |
+          set -euo pipefail
+          APKREPO="$RUNNER_TEMP/apk-repo"
+          mkdir -p "$APKREPO"
+          AARCH="$HOME/.local/var/pmbootstrap/packages/edge/aarch64"
+          cp -L "$AARCH"/APKINDEX.tar.gz "$AARCH"/*.apk "$APKREPO/"
+          cp ci/keys/pmos@local-ci.rsa.pub "$APKREPO/"
+          echo "=== apk repository contents ==="
+          ls -la "$APKREPO"
+          test -s "$APKREPO/APKINDEX.tar.gz" || { echo "ERROR: APKINDEX missing"; exit 1; }
+          test "$(ls "$APKREPO"/*.apk | wc -l)" -ge 4 || { echo "ERROR: too few apks"; exit 1; }
+          TAG="pmos-edge"
+          gh release delete "$TAG" --yes --cleanup-tag >/dev/null 2>&1 || true
+          gh release create "$TAG" "$APKREPO"/* \
+            --repo "${{ github.repository }}" \
+            --title "postmarketOS edge (rolling)" \
+            --notes "滚动 apk 仓库。设备端 apk update 然后 apk upgrade 升级自编译包。内核升级后运行 sudo upgrade-kernel 重建并刷写 boot 分区。"
+          echo "=== verify release assets ==="
+          gh release view "$TAG" --repo "${{ github.repository }}" --json assets --jq '.assets[].name' | sort

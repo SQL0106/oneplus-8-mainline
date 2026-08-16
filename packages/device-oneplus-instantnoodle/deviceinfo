@@ -17,6 +17,7 @@ deviceinfo_screen_height="2400"
 # Bootloader related
 deviceinfo_flash_method="fastboot"
 deviceinfo_generate_bootimg="true"
+deviceinfo_flash_kernel_on_update="true"
 deviceinfo_flash_pagesize="4096"
 deviceinfo_header_version="2"
 deviceinfo_dtb="qcom/sm8250-oneplus-instantnoodle"
