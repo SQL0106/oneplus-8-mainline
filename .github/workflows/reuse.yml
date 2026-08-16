@@ -77,6 +77,7 @@ jobs:
           cp ci/keys/abuild.conf ci/keys/pmos@local-ci.rsa ci/keys/pmos@local-ci.rsa.pub "$WORK/config_abuild/"
           cp ci/keys/pmos@local-ci.rsa.pub "$WORK/config_apk_keys/"
           chmod 644 "$WORK/config_abuild/pmos@local-ci.rsa"
+          chmod -R a+rwX "$WORK/packages" || true
           echo "installed keys:"
           ls -la "$WORK/config_abuild" "$WORK/config_apk_keys"
 
