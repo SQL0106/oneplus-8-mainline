@@ -82,10 +82,32 @@ jobs:
           restore-keys: |
             ccache-
 
+      - name: Cache built packages
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.local/var/pmbootstrap/packages
+          key: pmos-packages-linux-6.16.7
+
       - name: Build image
         run: |
           cd /tmp/pmbootstrap
           ./pmbootstrap.py -y -j 2 install --password 147147
+
+      - name: Dump pmbootstrap log on failure
+        if: failure()
+        run: |
+          echo "=== df -h ==="
+          df -h
+          echo "=== pmbootstrap log.txt tail ==="
+          tail -n 200 "$HOME/.local/var/pmbootstrap/log.txt" 2>/dev/null || true
+
+      - name: Upload built packages
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pmos-packages
+          path: /home/runner/.local/var/pmbootstrap/packages
+          retention-days: 7
 
       - name: Export artifacts
         run: |
