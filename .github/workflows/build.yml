@@ -15,6 +15,10 @@ on:
       - "AGENTS.md"
       - ".github/workflows/**"
 
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   actions: write
@@ -138,7 +142,7 @@ jobs:
           key: pmos-cache-${{ github.sha }}
 
       - name: Verify build cache saved
-        if: always()
+        if: success()
         shell: bash
         run: |
           for i in $(seq 1 12); do
@@ -159,7 +163,7 @@ jobs:
           ./pmbootstrap.py export ./export
           mkdir -p "$GITHUB_WORKSPACE/artifacts"
           tar -ch -C ./export -f "$GITHUB_WORKSPACE/artifacts/export.tar" .
-          cp -aL ./export/. "$GITHUB_WORKSPACE/artifacts/"
+          cp -aL ./export/. "$GITHUB_WORKSPACE/artifacts/" 2>/dev/null || true
           echo "=== full export inventory ==="
           find "$GITHUB_WORKSPACE/artifacts/" -type f -printf '%P %s bytes\n' | sort
           for f in boot.img dtbo.img; do
