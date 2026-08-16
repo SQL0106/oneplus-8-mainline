@@ -17,13 +17,16 @@
 - `pmbootstrap config build_pkgs_on_install false` 可让 install 零编译（config.py:58）。
 
 ## CI 分工
-- `build.yml`：唯一允许编译内核的工作流。固定密钥注入 → 全量编译 → 缓存自验证 → 完整导出（含 dtbs）→ 上传产物 + pmos-packages + build-logs。
+- `build.yml`：唯一允许编译内核的工作流。固定密钥注入 → 全量编译 → 缓存自验证 → 完整导出（含 dtbs）→ 上传产物 + pmos-packages + build-logs → 发布滚动 apk Release（`pmos-edge`，`releases/latest/download/`）。Release 步骤必须 `env: GH_TOKEN: ${{ github.token }}`（gh 不识别 GITHUB_TOKEN）。
 - `reuse.yml`：专职复用，`build_pkgs_on_install=false`，**禁止编译**，缺包直接报错。固定密钥注入 + 缓存恢复验证。
-- build.yml 的 `paths-ignore` 含 `.github/workflows/**`，但 `ci/keys/` 等路径改动会触发编译，提交前注意。
+- build.yml 的 `paths-ignore` 含 `.github/workflows/**`，但 `ci/keys/`、`packages/` 等路径改动会触发编译，提交前注意。
 - 设备：oneplus-instantnoodle（SM8250，fastboot）。firmware 包不得含 regulatory.db*（与 wireless-regdb 冲突）。
 - 刷机：fastboot 刷 boot/dtbo/super。产物在 artifact `postmarketos-oneplus-instantnoodle`（含 boot.img/dtbo.img/rootfs/initramfs/vmlinuz/dtbs/export.tar）。
 
+## 升级机制
+- 设备端 OTA：`apk update && apk upgrade`（自建源在 `releases/latest/download/`，双源：官方 mirror.postmarketos.org + 自建）。deviceinfo 已设 `deviceinfo_flash_kernel_on_update="true"`，内核包更新时 mkinitfs → boot-deploy 自动重建并 dd 刷写 boot 分区。`gh release create` 前先 `gh release delete pmos-edge --yes --cleanup-tag`（滚动 tag）。
+
 ## 进行中 / 状态
-- CI run 31931533225（固定密钥完整版）06:29 启动，预计 ~07:15 绿。
-- 本地归档：`release/`（archive-packages/ 含历史所有 run 的 apk；logs/exec.log 执行日志）。
+- 本地归档：`release/`（archive-packages/ 含历史所有 run 的 apk；logs/exec.log 执行日志）。`release/` 已 gitignore。
 - 密钥：`ci/keys/pmos@local-ci.rsa`（私钥已入仓，勿外泄）。
+- 最新 commit dad8ef0：OTA 升级功能（deviceinfo flash_kernel_on_update + Release 发布 + README）。待验证 Release 发布成功。
