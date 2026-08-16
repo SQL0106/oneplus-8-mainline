@@ -85,7 +85,7 @@ jobs:
       - name: Build image
         run: |
           cd /tmp/pmbootstrap
-          ./pmbootstrap.py -y -j 2 install
+          ./pmbootstrap.py -y -j 2 install --password 147147
 
       - name: Export artifacts
         run: |
