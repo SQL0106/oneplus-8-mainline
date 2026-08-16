@@ -72,21 +72,18 @@ jobs:
           cd /tmp/pmbootstrap
           ./pmbootstrap.py config ui "$UI"
 
-      - name: Cache ccache
-        uses: actions/cache@v4
+      - name: Restore build cache
+        uses: actions/cache/restore@v4
         with:
           path: |
+            /home/runner/.local/var/pmbootstrap/packages
+            /home/runner/.local/var/pmbootstrap/config_abuild
+            /home/runner/.local/var/pmbootstrap/config_apk_keys
             /home/runner/.local/var/pmbootstrap/cache_ccache_x86_64
             /home/runner/.local/var/pmbootstrap/cache_ccache_aarch64
-          key: ccache-${{ github.sha }}
+          key: pmos-cache-${{ github.sha }}
           restore-keys: |
-            ccache-
-
-      - name: Cache built packages
-        uses: actions/cache@v4
-        with:
-          path: /home/runner/.local/var/pmbootstrap/packages
-          key: pmos-packages-linux-6.16.7
+            pmos-cache-
 
       - name: Build image
         run: |
@@ -109,10 +106,22 @@ jobs:
           path: /home/runner/.local/var/pmbootstrap/packages
           retention-days: 7
 
+      - name: Save build cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            /home/runner/.local/var/pmbootstrap/packages
+            /home/runner/.local/var/pmbootstrap/config_abuild
+            /home/runner/.local/var/pmbootstrap/config_apk_keys
+            /home/runner/.local/var/pmbootstrap/cache_ccache_x86_64
+            /home/runner/.local/var/pmbootstrap/cache_ccache_aarch64
+          key: pmos-cache-${{ github.sha }}
+
       - name: Export artifacts
         run: |
           cd /tmp/pmbootstrap
-          ./pmbootstrap.py flasher export ./export
+          ./pmbootstrap.py export ./export
           mkdir -p artifacts
           cp -L ./export/* ./artifacts/ 2>/dev/null || true
           ls -lh ./artifacts/
