@@ -68,8 +68,9 @@ jobs:
         run: |
           WORK="$HOME/.local/var/pmbootstrap"
           PKGARCH="$WORK/packages/edge/aarch64"
+          PREVDIR=$(find /tmp/prev-pkgs -type d -name aarch64 | head -1)
           mkdir -p "$PKGARCH" "$WORK/config_apk_keys"
-          cp /tmp/prev-pkgs/*.apk /tmp/prev-pkgs/APKINDEX.tar.gz "$PKGARCH/"
+          cp "$PREVDIR"/*.apk "$PREVDIR"/APKINDEX.tar.gz "$PKGARCH/"
           SIGN="$(mktemp -d)"
           tar -xzf "$PKGARCH/linux-oneplus-instantnoodle-"*.apk -C "$SIGN" --wildcards '.SIGN.RSA*'
           cp "$SIGN"/.SIGN.RSA* "$WORK/config_apk_keys/"
